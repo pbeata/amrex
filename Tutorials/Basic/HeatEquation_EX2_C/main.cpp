@@ -70,6 +70,7 @@ void main_main ()
 
         // Initialize the boxarray "ba" from the single box "bx"
         ba.define(domain);
+
         // Break up boxarray "ba" into chunks no larger than "max_grid_size" along a direction
         ba.maxSize(max_grid_size);
 
@@ -80,10 +81,6 @@ void main_main ()
         // This defines a Geometry object
         geom.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
     }
-
-    // pbeata
-    amrex::Print() << "\n *** Check the BoxArray: " << std::endl;
-    amrex::Print() << ba << std::endl;
 
     // Nghost = number of ghost cells for each array 
     int Nghost = 1;
@@ -96,10 +93,6 @@ void main_main ()
   
     // How Boxes are distrubuted among MPI processes
     DistributionMapping dm(ba);
-
-    // pbeata
-    amrex::Print() << dm << std::endl;
-    amrex::Print() << dm.strategy() << std::endl;
 
     // we allocate two phi multifabs; one will store the old state, the other the new.
     MultiFab phi_old(ba, dm, Ncomp, Nghost);
@@ -150,18 +143,8 @@ void main_main ()
             else {
                 amrex::Abort("Invalid bc_hi");
             }
-
-            // pbeata
-            amrex::Print() << bc[n] << std::endl;
-
         }
-    }
-
-    // pbeata
-    for (int idim=0; idim < AMREX_SPACEDIM; ++idim) 
-    {    
-        amrex::Print() << "IS_PERIODIC[IDIM]: " << is_periodic[idim] << std::endl;
-    }    
+    }   
 
     // compute the time step
     const Real* dx = geom.CellSize();
