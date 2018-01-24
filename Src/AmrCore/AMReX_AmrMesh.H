@@ -159,6 +159,11 @@ public:
 
     long CountCells (int& lev);
 
+    // A new member function by pbeata to print cell count and
+    // load balance stats on per-processor and per-level basis.
+    // ==> added 01-23-18 (updated 01-24-18)
+    void PrintCostMatrix ();
+
     static void Initialize ();
     static void Finalize ();
 

@@ -15,8 +15,7 @@
 
 using namespace amrex;
 
-class AmrCoreAdv
-    : public amrex::AmrCore
+class AmrCoreAdv : public amrex::AmrCore
 {
 public:
 
@@ -96,7 +95,7 @@ private:
     // advance a single level for a single time step, updates flux registers
     void Advance (int lev, amrex::Real time, amrex::Real dt, int iteration, int ncycle);
 
-    // a wrapper for EstTimeStep(0
+    // a wrapper for EstTimeStep(...)
     void ComputeDt ();
 
     // compute dt from CFL considerations
