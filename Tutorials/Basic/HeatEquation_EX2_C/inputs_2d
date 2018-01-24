@@ -1,5 +1,7 @@
 nsteps = 10000
+nsteps = 100
 plot_int = 1000
+plot_int = -1
 n_cell = 256
 max_grid_size = 64
 
@@ -8,3 +10,5 @@ max_grid_size = 64
 ! 3 = Dirichlet (prescribed value)
 bc_lo = 3 0
 bc_hi = 2 0
+
+DistributionMapping.strategy = KNAPSACK

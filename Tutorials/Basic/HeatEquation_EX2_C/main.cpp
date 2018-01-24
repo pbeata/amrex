@@ -81,6 +81,10 @@ void main_main ()
         geom.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
     }
 
+    // pbeata
+    amrex::Print() << "\n *** Check the BoxArray: " << std::endl;
+    amrex::Print() << ba << std::endl;
+
     // Nghost = number of ghost cells for each array 
     int Nghost = 1;
     
@@ -92,6 +96,10 @@ void main_main ()
   
     // How Boxes are distrubuted among MPI processes
     DistributionMapping dm(ba);
+
+    // pbeata
+    amrex::Print() << dm << std::endl;
+    amrex::Print() << dm.strategy() << std::endl;
 
     // we allocate two phi multifabs; one will store the old state, the other the new.
     MultiFab phi_old(ba, dm, Ncomp, Nghost);
@@ -143,14 +151,24 @@ void main_main ()
                 amrex::Abort("Invalid bc_hi");
             }
 
+            // pbeata
+            amrex::Print() << bc[n] << std::endl;
+
         }
     }
+
+    // pbeata
+    for (int idim=0; idim < AMREX_SPACEDIM; ++idim) 
+    {    
+        amrex::Print() << "IS_PERIODIC[IDIM]: " << is_periodic[idim] << std::endl;
+    }    
 
     // compute the time step
     const Real* dx = geom.CellSize();
     Real dt = 0.9*dx[0]*dx[0] / (2.0*AMREX_SPACEDIM);
 
-    // Write a plotfile of the initial data if plot_int > 0 (plot_int was defined in the inputs file)
+    // Write a plotfile of the initial data if plot_int > 0 
+    //  (plot_int was defined in the inputs file)
     if (plot_int > 0)
     {
         int n = 0;
