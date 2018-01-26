@@ -43,6 +43,16 @@ extern "C"
 		  const amrex_real* dx, const amrex_real* glo, 
 		  const amrex_real* time, const int* bc);
 
+    void writeout(
+    	const int*, 
+    	const int*, 
+    	const amrex_real*, 
+    	const int*, 
+    	const int*,
+    	const amrex_real* dx,
+    	const amrex_real* glo, 
+    	const int*);
+
 #ifdef __cplusplus
 }
 #endif

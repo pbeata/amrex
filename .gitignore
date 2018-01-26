@@ -21,4 +21,4 @@ TAGS
 *.pyc
 
 *plt*
-*old_output*
+*output*

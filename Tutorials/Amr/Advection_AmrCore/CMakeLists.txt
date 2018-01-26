@@ -11,7 +11,7 @@ scan_for_sources (F90SRC F77SRC CXXSRC ALLHEADERS
 scan_for_sources (TMP1 TMP2 TMP3 TMP4
   ROOT ${SRC_DIR}/Src_nd )
 
-list (APPEND F90SRC     ${TMP1} ${EXE_DIR}/Prob.f90 ${EXE_DIR}/face_velocity_${DIM}d.f90 )
+list (APPEND F90SRC     ${TMP1} ${EXE_DIR}/Prob.f90 ${EXE_DIR}/face_velocity_${DIM}d.f90 ${EXE_DIR}/MyPrint.f90)
 list (APPEND F90SRC     ${SRC_DIR}/bc_fill_nd.F90 )
 list (APPEND F77SRC     ${TMP2} )
 list (APPEND CXXSRC     ${TMP3} ${SRC_DIR}/AmrCoreAdv.cpp  ${SRC_DIR}/main.cpp )

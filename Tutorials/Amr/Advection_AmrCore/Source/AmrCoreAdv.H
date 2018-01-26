@@ -113,6 +113,9 @@ private:
     // write plotfile to disk
     void WritePlotFile () const;
 
+    // write solution to files
+    void WriteOutput () const;   
+
     ////////////////
     // private data members
 
