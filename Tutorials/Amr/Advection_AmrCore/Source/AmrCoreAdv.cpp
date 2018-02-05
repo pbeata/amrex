@@ -101,14 +101,15 @@ AmrCoreAdv::Evolve ()
 {
     Real cur_time = t_new[0];
     int last_plot_file_step = 0;
+    int write_my_output = 0;
        
 
     for (int step = istep[0]; step < max_step && cur_time < stop_time; ++step)
     {
-        amrex::Print() << "\nCoarse STEP " << step+1 << " starts ..." << std::endl;
+        //amrex::Print() << "\nCoarse STEP " << step+1 << " starts ..." << std::endl;
 
         // pbeata added new Cost Matrix output to AMReX_AmrMesh in amrex/Src/
-        PrintCostMatrix();
+        PrintCostMatrix(step, cur_time);
 
         ComputeDt();
 
@@ -119,8 +120,8 @@ AmrCoreAdv::Evolve ()
 
         cur_time += dt[0];
 
-        amrex::Print() << "Coarse STEP " << step+1 << " ends." << " TIME = " << cur_time
-                       << " DT = " << dt[0]  << std::endl;
+        //amrex::Print() << "Coarse STEP " << step+1 << " ends." << " TIME = " << cur_time
+        //               << " DT = " << dt[0]  << std::endl;
 
         // sync up time
         for (int lev = 0; lev <= finest_level; ++lev) 
@@ -145,8 +146,18 @@ AmrCoreAdv::Evolve ()
        if (cur_time >= stop_time - 1.e-6*dt[0]) break;
     }
 
-    // pbeata added new data output to AmrCoreAdv
-    WriteOutput();    
+    // pbeata added new data output function to AmrCoreAdv
+    //  (write out phi_new at final time step)
+    if (write_my_output == 1)
+    {        
+        for (int lev = 0; lev <= finest_level; ++lev) 
+        {
+            WriteOutput(lev);
+        }
+    }
+
+    // pbeata added new Cost Matrix output to AMReX_AmrMesh in amrex/Src/
+    PrintCostMatrix(-1, cur_time);
 
     if (plot_int > 0 && istep[0] > last_plot_file_step) 
     {
@@ -794,48 +805,58 @@ AmrCoreAdv::WritePlotFile () const
                    Geom(), t_new[0], istep, refRatio());
 }
 
-// write solution to files
+// pbeata: write solution to files
 void
-AmrCoreAdv::WriteOutput () const
+AmrCoreAdv::WriteOutput (int lev) const
 {
+    int myproc = ParallelDescriptor::MyProc();
+    int nprocs = ParallelDescriptor::NProcs();
+
     // amrex::Print() << "test printing output!\n"; 
-    // amrex::Print() << "size of phi_new = " << phi_new.size() << "\n"; 
+    // amrex::Print(myproc) << "\nproc #" << myproc << " of " << nprocs << "\n"; 
+    // amrex::Print(myproc) << "size of phi_new = " << phi_new.size() << "\n"; 
+    amrex::Print() << "\nTotal boxes in phi_new at level " << lev << ": " << phi_new[lev].size() << "\n"; 
     
     // get dx and prob_lo for the single level case first
-    const Real* dx = geom[0].CellSize();
-    const Real* prob_lo = geom[0].ProbLo();
+    const Real* dx = geom[lev].CellSize();
+    const Real* prob_lo = geom[lev].ProbLo();
 
     // loop over grids (single-level as of now)
-    int boxNum = 0;
-    for (MFIter mfi(phi_new[0]); mfi.isValid(); ++mfi)
-    {
-        // this is the valid Box of the current FArrayBox
-        // (valid = the original ungrown Box in BoxArray)
-        const Box& box = mfi.validbox();
-        
-        //amrex::Print() << "    size of box " << count;
-        //amrex::Print() <<  " is " << box.size() << "\n";
+    if (myproc >= 0)
+    {    
+        int boxNum = 0;
+        for (MFIter mfi(phi_new[lev]); mfi.isValid(); ++mfi)
+        {
+            // this is the valid Box of the current FArrayBox
+            // (valid = the original ungrown Box in BoxArray)
+            const Box& box = mfi.validbox();
+            
+            //amrex::Print() << "    size of box " << count;
+            //amrex::Print() <<  " is " << box.size() << "\n";
 
-        // a reference to the current FArrayBox in this loop iteration
-        const FArrayBox& fab = (phi_new[0])[mfi];
+            // a reference to the current FArrayBox in this loop iteration
+            const FArrayBox& fab = (phi_new[lev])[mfi];
 
-        // pointer to the floating-point data of this FArrayBox
-        const Real* a = fab.dataPtr();
+            // pointer to the floating-point data of this FArrayBox
+            const Real* a = fab.dataPtr();
 
-        // Box on which the FArrayBox is defined.
-        // (note that abox includes ghost cells, if any exist,
-        // thus, abox is larger than or equal to box)
-        const Box& abox = fab.box();
+            // Box on which the FArrayBox is defined.
+            // (note that abox includes ghost cells, if any exist,
+            // thus, abox is larger than or equal to box)
+            const Box& abox = fab.box();
 
-        // call Fortran subroutine to process our data
-        writeout(BL_TO_FORTRAN_BOX(box),
-                 BL_TO_FORTRAN_ANYD(fab),
-                 ZFILL(dx),
-                 ZFILL(prob_lo),
-                 &boxNum);
+            // call Fortran subroutine to process our data
+            writeout(BL_TO_FORTRAN_BOX(box),
+                     BL_TO_FORTRAN_ANYD(fab),
+                     ZFILL(dx),
+                     ZFILL(prob_lo),
+                     &myproc,
+                     &lev,
+                     &boxNum);
 
-        // increment our box counter
-        boxNum++;
+            // increment our box counter
+            boxNum++;
+        }
     }
 
 }

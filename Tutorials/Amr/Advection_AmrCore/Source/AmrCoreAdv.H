@@ -113,8 +113,8 @@ private:
     // write plotfile to disk
     void WritePlotFile () const;
 
-    // write solution to files
-    void WriteOutput () const;   
+    // pbeata: write solution to files
+    void WriteOutput (int lev) const;   
 
     ////////////////
     // private data members

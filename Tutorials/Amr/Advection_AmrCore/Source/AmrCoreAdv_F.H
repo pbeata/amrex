@@ -51,6 +51,8 @@ extern "C"
     	const int*,
     	const amrex_real* dx,
     	const amrex_real* glo, 
+    	const int*,
+      const int*,
     	const int*);
 
 #ifdef __cplusplus

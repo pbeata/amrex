@@ -1,4 +1,8 @@
 
+#include <string>
+#include <iostream>
+#include <fstream>
+
 #include <AMReX.H>
 #include <AMReX_AmrMesh.H>
 #include <AMReX_Cluster.H>
@@ -934,102 +938,161 @@ AmrMesh::CountCells (int& lev)
 // A new member function by pbeata to print cell count and
 // load balance stats on per-processor and per-level basis.
 void 
-AmrMesh::PrintCostMatrix ()
+AmrMesh::PrintCostMatrix (int step, Real time)
 {
-    // get number of MPI processes used in this simulation
+    // get MPI process info
+    const int myRank = ParallelDescriptor::MyProc();
     const int numProcs = ParallelDescriptor::NProcs();
-
-    // count total number of cells on each proc at current time step
-    int procTotal[numProcs];
-
-    // loop over all levels 
-    // (the +1 is to print procTotal in the final row)
-    for (int lev = 0; lev <= finest_level+1; ++lev) 
+    if (myRank == 0)
     {
-        // print a normal row in the Cost Matrix
-        if (lev <= finest_level)
+        // choose simple (0) or verbose print (1)
+        int printStyle = 0;
+
+        // count total number of cells on each proc at current time step
+        int procTotal[numProcs];
+
+        // loop over all levels 
+        // (the +1 is to print procTotal in the final row)
+        for (int lev = 0; lev <= finest_level+1; ++lev) 
         {
-            // determine the number of Boxes in the current grid BoxArray for level 'lev'
-            const int numBoxes = grids[lev].size();
-        
-            // the number of cells in one Box is determined as m-by-n
-            int m, n, numCellsInBox;
-        
-            // we cound the total number of cells on this level across all procs
-            int numCellsOnLevel = 0;
-        
-            // procCellCount: these are the bins that store the number of 
-            //      cells (i.e. load) on each proc
-            // procTotal: these bins store the total number of cells on
-            //      each proce (last row of Cost Matrix)
-            int kproc;
-            int procCellCount[numProcs];
-            for (int k = 0; k < numProcs; k++)
+            // print a normal row in the Cost Matrix
+            if (lev <= finest_level)
             {
-                procCellCount[k] = 0;
-                if (lev == 0)
+                // determine the number of Boxes in the current grid BoxArray for level 'lev'
+                const int numBoxes = grids[lev].size();
+            
+                // the number of cells in one Box is determined as m-by-n
+                int m, n, numCellsInBox;
+            
+                // we cound the total number of cells on this level across all procs
+                int numCellsOnLevel = 0;
+            
+                // procCellCount: these are the bins that store the number of 
+                //      cells (i.e. load) on each proc
+                // procTotal: these bins store the total number of cells on
+                //      each proce (last row of Cost Matrix)
+                int kproc;
+                int procCellCount[numProcs];
+                for (int k = 0; k < numProcs; k++)
                 {
-                    procTotal[k] = 0;
+                    procCellCount[k] = 0;
+                    if (lev == 0)
+                    {
+                        procTotal[k] = 0;
+                    }
+                }
+            
+                // loop over all the Box objects on this level
+                for (int iBox = 0; iBox < numBoxes; iBox++)
+                {
+                    // get a single box and its size
+                    Box bx = grids[lev][iBox];
+                    IntVect boxSize = bx.size();
+                    // assumed 2D domain only
+                    m = boxSize[0];
+                    n = boxSize[1];
+                    // compute the number of cells in this box (and update level sum)
+                    numCellsInBox = m * n;
+                    numCellsOnLevel += numCellsInBox;
+                    // update cell count in the right proc bin using "DistributionMapping"
+                    kproc = dmap[lev][iBox];
+                    procCellCount[kproc] += numCellsInBox;
+                }
+            
+                // compute the variance among proc loads for one level
+                double averageCount = 0.0;
+                double variance = 0.0;
+                int sumOfSquares = 0;
+                for (int k = 0; k < numProcs; k++)
+                {
+                    sumOfSquares += procCellCount[k] * procCellCount[k];
+                    procTotal[k] += procCellCount[k];
+                }
+                averageCount = numCellsOnLevel / numProcs;
+                variance = (double)(sumOfSquares / numProcs);
+                variance = variance - (averageCount * averageCount);
+            
+                if (printStyle == 0)
+                {
+                    // write output to a level-specific file
+                    std::ofstream OutFileObject;
+                    std::string filename;
+                    filename = "level_" + std::to_string(lev) + ".csv";
+                    OutFileObject.open(filename.c_str(), std::ios::app);
+
+                    // ================================================================
+                    // WRITE THE RESULTS TO THE OUTPUT FILE
+                    OutFileObject << time << ", ";
+                    OutFileObject << step << ", ";
+                    OutFileObject << lev << ", ";
+                    for (int col = 0; col < numProcs; col++)
+                    {
+                        OutFileObject << procCellCount[col] << ", ";
+                    }
+                    OutFileObject << numCellsOnLevel;
+                    OutFileObject << ", " << CountCells(lev);
+                    OutFileObject << ", " << averageCount;
+                    OutFileObject << ", " << variance;
+                    OutFileObject << "\n";
+                    // ================================================================       
+                    
+                    // close output file
+                    OutFileObject.close();         
+                }
+                else if (printStyle == 1)
+                {
+                    // ================================================================
+                    // PRINT THE RESULTS TO THE TERMINAL
+                    Print() << "    Level #" << lev << "\t||\t";
+                    for (int col = 0; col < numProcs; col++)
+                    {
+                        Print() << procCellCount[col] << "\t";
+                    }
+                    Print() << "||\t" << numCellsOnLevel;
+                    Print() << "\t" << CountCells(lev);
+                    Print() << "\t||\t" << averageCount;
+                    Print() << "\t" << variance;
+                    Print() << "\n";
+                    // ================================================================
                 }
             }
-        
-            // loop over all the Box objects on this level
-            for (int iBox = 0; iBox < numBoxes; iBox++)
+            // print the final row in the Cost Matrix showing total cells per proc
+            else
             {
-                // get a single box and its size
-                Box bx = grids[lev][iBox];
-                IntVect boxSize = bx.size();
-                // assumed 2D domain only
-                m = boxSize[0];
-                n = boxSize[1];
-                // compute the number of cells in this box (and update level sum)
-                numCellsInBox = m * n;
-                numCellsOnLevel += numCellsInBox;
-                // update cell count in the right proc bin using "DistributionMapping"
-                kproc = dmap[lev][iBox];
-                procCellCount[kproc] += numCellsInBox;
+                if (printStyle == 0)
+                {
+                    // WRITE THE RESULTS TO THE OUTPUT FILE
+                    std::ofstream OutFileObject;
+                    std::string filename;
+                    filename = "total.csv";
+                    OutFileObject.open(filename.c_str(), std::ios::app);
+                    OutFileObject << time << ", ";
+                    OutFileObject << step << ", ";
+                    OutFileObject << 1000 << ", ";
+                    int totalCells = 0;
+                    for (int col = 0; col < numProcs; col++)
+                    {
+                        OutFileObject << procTotal[col] << ", ";
+                        totalCells += procTotal[col];
+                    }
+                    OutFileObject << totalCells;
+                    OutFileObject << "\n";
+                    OutFileObject.close();
+                }
+                else if (printStyle == 1)
+                {
+                    // ================================================================
+                    // PRINT THE RESULTS TO THE TERMINAL
+                    Print() << "    Proc Tot\t||\t";
+                    for (int col = 0; col < numProcs; col++)
+                    {
+                        Print() << procTotal[col] << "\t";
+                    }
+                    Print() << "||\t";
+                    Print() << "\n";
+                    // ================================================================
+                }
             }
-        
-            // compute the variance among proc loads for one level
-            double averageCount = 0.0;
-            double variance = 0.0;
-            int sumOfSquares = 0;
-            for (int k = 0; k < numProcs; k++)
-            {
-                sumOfSquares += procCellCount[k] * procCellCount[k];
-                procTotal[k] += procCellCount[k];
-            }
-            averageCount = numCellsOnLevel / numProcs;
-            variance = (double)(sumOfSquares / numProcs);
-            variance = variance - (averageCount * averageCount);
-        
-            // ================================================================
-            // PRINT THE RESULTS TO THE TERMINAL
-            Print() << "    Level #" << lev << "\t||\t";
-            for (int col = 0; col < numProcs; col++)
-            {
-                Print() << procCellCount[col] << "\t";
-            }
-            Print() << "||\t" << numCellsOnLevel;
-            Print() << "\t" << CountCells(lev);
-            Print() << "\t||\t" << averageCount;
-            Print() << "\t" << variance;
-            Print() << "\n";
-            // ================================================================
-        }
-        // print the final row in the Cost Matrix showing total cells per proc
-        else
-        {
-            // ================================================================
-            // PRINT THE RESULTS TO THE TERMINAL
-            Print() << "    Proc Tot\t||\t";
-            for (int col = 0; col < numProcs; col++)
-            {
-                Print() << procTotal[col] << "\t";
-            }
-            Print() << "||\t";
-            Print() << "\n";
-            // ================================================================
         }
     }
 }  
