@@ -280,11 +280,6 @@ namespace amrex {
 		}
 		return bx;
 	    }
-
-
-
-
-
     };//end class Action
 
     template <class T>
@@ -327,25 +322,34 @@ namespace amrex {
 		    AbstractTaskGraph<T>::_nProcs= nProcs;
 		    AbstractTaskGraph<T>::_rank= rank;
 		    //create an initial graph corresponding to the coarsest AMR level, this graph will evolve with time
-		    for(int s=0; s< amr->amr_level[0]->numStates(); s++){
-			MultiFab& mf = amr->amr_level[0]->get_new_data(0);
-			for(int i=0; i< mf.local_size(); i++){
-			    TaskName name(0 /*level*/, s/*state*/, mf.IndexArray()[i] /*fab*/);
-			    T *t= new T();
-			    t->InitAmr(amr, max_step, stop_time);
-			    t->SetMF(mf);
-			    t->SetFab(mf.m_fabs_v[i]);
-			    t->SetIdx(mf.IndexArray()[i]);
-			    t->SetName(name);
-			    t->SetLocalIdx(i);
-			    if(i==0) t->SetMaster();
-			    if(do_tiling){
-				IntVect ts= FabArrayBase::mfiter_tile_size;
-				t->generateTileArray(ts); //create tile array associated with this FAB
+		    int n_intervals=1;
+		    for(int l=0; l<= amr->finest_level; l++){
+			n_intervals*= amr->n_cycle[l];
+			for(int s=0; s< amr->amr_level[l]->numStates(); s++){
+			    MultiFab& mf = amr->amr_level[l]->get_new_data(s);
+			    amr->amr_level[l]->get_state_data(s).allocOldData();
+			    for(int i=0; i< mf.local_size(); i++){
+				for(int it=0; it< n_intervals; it++){
+				    TaskName name(l /*level*/, s/*state*/, mf.IndexArray()[i] /*fab*/, it);
+				    T *t= new T();
+				    t->SetName(name);
+				    t->SetLocalIdx(i);
+				    t->SetMF(mf);
+				    t->SetFab(mf.m_fabs_v[i]);
+				    t->SetIdx(mf.IndexArray()[i]);
+				    t->InitAmrTask(amr, max_step, stop_time);
+				    t->CreateLevelTask(l);
+				    if(i==0) t->SetMaster();
+				    if(do_tiling){
+					IntVect ts= FabArrayBase::mfiter_tile_size;
+					t->generateTileArray(ts); //create tile array associated with this FAB
+				    }
+				    if(do_tiling) t->enable_tiling();
+				    AbstractTaskGraph<T>::_initialTasks.push_back(t);
+				    AbstractTaskGraph<T>::_taskPool[name]= t;
+		    		    SetupFabConnections(mf, amr->amr_level[l]->Geom().periodicity());
+				}
 			    }
-			    if(do_tiling) t->enable_tiling();
-			    AbstractTaskGraph<T>::_initialTasks.push_back(t);
-			    AbstractTaskGraph<T>::_taskPool[name]= t;
 			}
 		    }
 		    AbstractTaskGraph<T>::_begin= *(AbstractTaskGraph<T>::_initialTasks.begin());
@@ -353,7 +357,6 @@ namespace amrex {
 		    AbstractTaskGraph<T>::_currIt= AbstractTaskGraph<T>::_initialTasks.begin();
 		    AbstractTaskGraph<T>::_current= *(AbstractTaskGraph<T>::_currIt);
 		    AbstractTaskGraph<T>::_mode= _Push;
-		    //SetupFabConnections(mf, period);
 		    _do_tiling= do_tiling;
 		}
 
@@ -369,8 +372,8 @@ namespace amrex {
 		    const int n_loc_mf = TheFB.m_LocTags->size();
 		    const int n_snds_mf = TheFB.m_SndTags->size();
 		    const int n_rcvs_mf = TheFB.m_RcvTags->size();
-		    Array<const FabArrayBase::CopyComTagsContainer*> send_cctc;
-		    Array<int> send_pr;
+		    Vector<const FabArrayBase::CopyComTagsContainer*> send_cctc;
+		    Vector<int> send_pr;
 		    send_cctc.reserve(n_snds_mf);
 
 		    for (FabArrayBase::MapOfCopyComTagContainers::const_iterator m_it = TheFB.m_SndTags->begin(),
@@ -384,8 +387,8 @@ namespace amrex {
 			    send_cctc.push_back(&(m_it->second));
 			}
 		    }
-		    Array<const FabArrayBase::CopyComTagsContainer*> recv_cctc;
-		    Array<int> recv_pr;
+		    Vector<const FabArrayBase::CopyComTagsContainer*> recv_cctc;
+		    Vector<int> recv_pr;
 		    recv_cctc.reserve(n_rcvs_mf);
 
 		    for (FabArrayBase::MapOfCopyComTagContainers::const_iterator m_it = TheFB.m_RcvTags->begin(),

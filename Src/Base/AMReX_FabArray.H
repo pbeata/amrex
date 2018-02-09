@@ -122,6 +122,7 @@ class FabArray
 {
 public:
     friend class Action;
+    friend class AmrTask;
     template <class T>
     friend class MFGraph;
 
@@ -308,6 +309,9 @@ public:
     * is performed on the region of intersection.  The intersection
     * is restricted to the valid regions.
     */
+    void ParallelAdd (const FabArray<FAB>& fa,
+                      const Periodicity&   period = Periodicity::NonPeriodic())
+       { ParallelCopy(fa,period,FabArray::ADD); }
     void ParallelCopy (const FabArray<FAB>& fa,
                        const Periodicity&   period = Periodicity::NonPeriodic(),
                        CpOp                 op = FabArrayBase::COPY);
@@ -324,6 +328,12 @@ public:
     * in the FabArray src, with the destination components in this
     * FabArray starting at dest_comp.
     */
+    void ParallelAdd (const FabArray<FAB>& src,
+                      int                  src_comp,
+                      int                  dest_comp,
+                      int                  num_comp,
+                      const Periodicity&   period = Periodicity::NonPeriodic())
+       { ParallelCopy(src,src_comp,dest_comp,num_comp, period, FabArrayBase::ADD); }
     void ParallelCopy (const FabArray<FAB>& src,
                        int                  src_comp,
                        int                  dest_comp,
@@ -339,6 +349,14 @@ public:
         { ParallelCopy(src,src_comp,dest_comp,num_comp, period, op); }
 
     //! Similar to the above function, except that source and destination are grown by src_nghost and dst_nghost, respectively 
+    void ParallelAdd (const FabArray<FAB>& src,
+                      int                  src_comp,
+                      int                  dest_comp,
+                      int                  num_comp,
+                      int                  src_nghost,
+                      int                  dst_nghost,
+                      const Periodicity&   period = Periodicity::NonPeriodic())
+       { ParallelCopy(src,src_comp,dest_comp,num_comp,src_nghost,dst_nghost,period,FabArrayBase::ADD); }
     void ParallelCopy (const FabArray<FAB>& src,
                        int                  src_comp,
                        int                  dest_comp,
@@ -865,22 +883,9 @@ FabArray<FAB>::clear ()
 
 	typename std::map<int, std::map<int, FabArray<FAB> *> >::iterator afapIter = 
 	    FabArray<FAB>::allocatedFAPointers.find(distributionMap.size());
-	if(afapIter == FabArray<FAB>::allocatedFAPointers.end()) {
-#ifdef DEBUG_AFAP
-	    if(ParallelDescriptor::IOProcessor(this->color()) && distributionMap.size() > 0) {
-		std::cout << "**** In FabArray::clear():: map not found:  size = "
-			  << distributionMap.size() << std::endl;
-	    }
-#endif
-	} else {
+	if(afapIter != FabArray<FAB>::allocatedFAPointers.end()) {
 	    std::map<int, FabArray<FAB> *> &faPtrCachedMap = afapIter->second;
 	    faPtrCachedMap.erase(aFAPId);
-#ifdef DEBUG_AFAP
-	    if(ParallelDescriptor::IOProcessor() && faPtrCachedMap.size() == 0) {
-		std::cout << "**** In FabArray::~FabArray()::  size distmapngrids = "
-			  << faPtrCachedMap.size() << "  " << afapIter-> first << std::endl;
-	    }
-#endif
 	    if(faPtrCachedMap.size() == 0) {  //---- delete unused maps
 		FabArray<FAB>::allocatedFAPointers.erase(afapIter);
 	    }
@@ -1307,16 +1312,19 @@ FabArray<FAB>::setDomainBndry (value_type val,
                                int        ncomp,
                                const Geometry& geom)
 {
-    if (n_grow > 0)
-    {
-        const Box& domain_box = amrex::convert(geom.Domain(), boxArray().ixType());
+    Box domain_box = amrex::convert(geom.Domain(), boxArray().ixType());
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        if (Geometry::isPeriodic(idim)) {
+            int n = domain_box.length(idim);
+            domain_box.grow(idim, n);
+        }
+    }
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-        for (MFIter fai(*this); fai.isValid(); ++fai)
-        {
-            get(fai).setComplement(val, domain_box, strt_comp, ncomp);
-        }
+    for (MFIter fai(*this); fai.isValid(); ++fai)
+    {
+        get(fai).setComplement(val, domain_box, strt_comp, ncomp);
     }
 }
 

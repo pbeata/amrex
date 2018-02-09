@@ -72,7 +72,7 @@ namespace amrex
         const int* hi      = box.hiVect();
         int nref = refrat[0];
 
-        timeinterprk3_simplepoly(&a_stage, ARLIM_3D(lo), ARLIM_3D(hi),
+        timeinterprk3_jbb(&a_stage, ARLIM_3D(lo), ARLIM_3D(hi),
                           BL_TO_FORTRAN_3D(  phiC[mfi]),
                           BL_TO_FORTRAN_3D(  oldC[mfi]),
                           BL_TO_FORTRAN_3D(    k1[mfi]),
@@ -285,7 +285,6 @@ namespace amrex
                  std::ostream&      os,
                  VisMF::How         how)
   {
-
     AmrLevel::writePlotFile (dir,os,how);
   }
 
@@ -354,7 +353,7 @@ namespace amrex
       const int* lo      = box.loVect();
       const int* hi      = box.hiVect();
 
-      initdata(level, cur_time, ARLIM_3D(lo), ARLIM_3D(hi),
+      initdata(&level, &cur_time, ARLIM_3D(lo), ARLIM_3D(hi),
                BL_TO_FORTRAN_3D(S_new[mfi]), ZFILL(dx),
                ZFILL(prob_lo));
     }
@@ -391,11 +390,11 @@ namespace amrex
       amrex::Print() << "**** using the " << algorithm << " algorithm ";
       if(use_limiting)
       {
-        amrex::Print() << "with limting ON ****" << endl;
+        amrex::Print() << "with limiting ON ****" << endl;
       }
       else
       {
-        amrex::Print() << "with limting OFF ****" << endl;
+        amrex::Print() << "with limiting OFF ****" << endl;
       }
       if(m_use_fixed_dt)
       {
@@ -930,13 +929,13 @@ namespace amrex
         //velocity for godunov is at time n+1/2 because that is wheree flux is centered
         const Real ctr_time = 0.5*(prev_time + cur_time); 
 
-        get_face_velocity(level, ctr_time,
+        get_face_velocity(&level, &ctr_time,
                           AMREX_D_DECL(BL_TO_FORTRAN(uface[0]),
                                        BL_TO_FORTRAN(uface[1]),
                                        BL_TO_FORTRAN(uface[2])),
                           dx, prob_lo);
 
-        advectDiffGodunov(time, bx.loVect(), bx.hiVect(),
+        advectDiffGodunov(&time, bx.loVect(), bx.hiVect(),
                           BL_TO_FORTRAN_3D(statein), 
                           BL_TO_FORTRAN_3D(dphidtout),
                           AMREX_D_DECL(BL_TO_FORTRAN_3D(uface[0]),
@@ -945,7 +944,7 @@ namespace amrex
                           AMREX_D_DECL(BL_TO_FORTRAN_3D(flux[0]), 
                                        BL_TO_FORTRAN_3D(flux[1]), 
                                        BL_TO_FORTRAN_3D(flux[2])), 
-                          dx, dt, diffco, &m_iuselimit);
+                          dx, &dt, &diffco, &m_iuselimit);
 
         if(do_reflux)
         {
@@ -1042,13 +1041,13 @@ namespace amrex
         //velocity is a time because this is MOL
         const Real ctr_time = time;
 
-        get_face_velocity(level, ctr_time,
+        get_face_velocity(&level, &ctr_time,
                           AMREX_D_DECL(BL_TO_FORTRAN(uface[0]),
                                        BL_TO_FORTRAN(uface[1]),
                                        BL_TO_FORTRAN(uface[2])),
                           dx, prob_lo);
 
-        advectDiffMOL4thOrd(time, bx.loVect(), bx.hiVect(),
+        advectDiffMOL4thOrd(&time, bx.loVect(), bx.hiVect(),
                             BL_TO_FORTRAN_3D(statein), 
                             BL_TO_FORTRAN_3D(dphidtout),
                             AMREX_D_DECL(BL_TO_FORTRAN_3D(uface[0]),
@@ -1057,7 +1056,7 @@ namespace amrex
                             AMREX_D_DECL(BL_TO_FORTRAN_3D(flux[0]), 
                                          BL_TO_FORTRAN_3D(flux[1]), 
                                          BL_TO_FORTRAN_3D(flux[2])), 
-                            dx, dt, diffco, 
+                            dx, &dt, &diffco, 
                             debugboxcell.loVect(), debugboxcell.hiVect(),
                             debugboxfaceHi.loVect(), debugboxfaceHi.hiVect(),
                             debugboxfaceLo.loVect(), debugboxfaceLo.hiVect(),
@@ -1131,13 +1130,13 @@ namespace amrex
         //MOL
         const Real ctr_time = time;
 
-        get_face_velocity(level, ctr_time,
+        get_face_velocity(&level, &ctr_time,
                           AMREX_D_DECL(BL_TO_FORTRAN(uface[0]),
                                        BL_TO_FORTRAN(uface[1]),
                                        BL_TO_FORTRAN(uface[2])),
                           dx, prob_lo);
 
-        advectDiffMOL2ndOrd(time, bx.loVect(), bx.hiVect(),
+        advectDiffMOL2ndOrd(&time, bx.loVect(), bx.hiVect(),
                             BL_TO_FORTRAN_3D(statein), 
                             BL_TO_FORTRAN_3D(dphidtout),
                             AMREX_D_DECL(BL_TO_FORTRAN_3D(uface[0]),
@@ -1146,7 +1145,7 @@ namespace amrex
                             AMREX_D_DECL(BL_TO_FORTRAN_3D(flux[0]), 
                                          BL_TO_FORTRAN_3D(flux[1]), 
                                          BL_TO_FORTRAN_3D(flux[2])), 
-                            dx, dt, diffco,  &m_iuselimit);
+                            dx, &dt, &diffco,  &m_iuselimit);
 
         if(do_reflux)
         {
@@ -1202,7 +1201,7 @@ namespace amrex
           uface[i].resize(bx,1);
         }
 
-        get_face_velocity(level, cur_time,
+        get_face_velocity(&level, &cur_time,
                           AMREX_D_DECL(BL_TO_FORTRAN(uface[0]),
                                        BL_TO_FORTRAN(uface[1]),
                                        BL_TO_FORTRAN(uface[2])),

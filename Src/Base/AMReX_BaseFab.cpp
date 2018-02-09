@@ -35,11 +35,7 @@ BF_init::BF_init ()
     {
         BL_ASSERT(the_arena == 0);
 
-#if defined(BL_COALESCE_FABS)
-        the_arena = new CArena;
-#else
         the_arena = new BArena;
-#endif
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -556,6 +552,26 @@ BaseFab<Real>::dot (const Box& xbx, int xcomp,
 			BL_TO_FORTRAN_N_3D(*this,xcomp),
 			BL_TO_FORTRAN_N_3D(y,ycomp), ARLIM_3D(ybx.loVect()),
 			&numcomp);
+}
+
+template <>
+Real
+BaseFab<Real>::dotmask (const BaseFab<int>& mask, const Box& xbx, int xcomp, 
+                        const BaseFab<Real>& y, const Box& ybx, int ycomp,
+                        int numcomp) const
+{
+    BL_ASSERT(xbx.ok());
+    BL_ASSERT(box().contains(xbx));
+    BL_ASSERT(y.box().contains(ybx));
+    BL_ASSERT(xbx.sameSize(ybx));
+    BL_ASSERT(xcomp >= 0 && xcomp+numcomp <=   nComp());
+    BL_ASSERT(ycomp >= 0 && ycomp+numcomp <= y.nComp());
+
+    return fort_fab_dot_mask(ARLIM_3D(xbx.loVect()), ARLIM_3D(xbx.hiVect()),
+                             BL_TO_FORTRAN_N_3D(*this,xcomp),
+                             BL_TO_FORTRAN_N_3D(y,ycomp), ARLIM_3D(ybx.loVect()),
+                             BL_TO_FORTRAN_ANYD(mask),
+                             &numcomp);
 }
 
 template<>

@@ -612,50 +612,47 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt, int iteration, int ncycle)
 #pragma omp parallel
 #endif
     {
-    FArrayBox flux[BL_SPACEDIM], uface[BL_SPACEDIM];
+	FArrayBox flux[BL_SPACEDIM], uface[BL_SPACEDIM];
 
-    for (MFIter mfi(S_new, true); mfi.isValid(); ++mfi)
-    {
-        const Box& bx = mfi.tilebox();
+	for (MFIter mfi(S_new, true); mfi.isValid(); ++mfi)
+	{
+	    const Box& bx = mfi.tilebox();
 
-        const FArrayBox& statein = Sborder[mfi];
-        FArrayBox& stateout      =   S_new[mfi];
+	    const FArrayBox& statein = Sborder[mfi];
+	    FArrayBox& stateout      =   S_new[mfi];
 
-        // Allocate fabs for fluxes and Godunov velocities.
-        for (int i = 0; i < BL_SPACEDIM ; i++) 
-        {
-            const Box& bxtmp = amrex::surroundingNodes(bx,i);
-            flux[i].resize(bxtmp,S_new.nComp());
-            uface[i].resize(amrex::grow(bxtmp,1),1);
-        }
+	    // Allocate fabs for fluxes and Godunov velocities.
+	    for (int i = 0; i < BL_SPACEDIM ; i++) {
+		const Box& bxtmp = amrex::surroundingNodes(bx,i);
+		flux[i].resize(bxtmp,S_new.nComp());
+		uface[i].resize(amrex::grow(bxtmp,1),1);
+	    }
 
-        // compute velocities on faces (prescribed function of space and time)
-        get_face_velocity(lev, ctr_time,
-                     AMREX_D_DECL(BL_TO_FORTRAN(uface[0]),
-                     BL_TO_FORTRAN(uface[1]),
-                     BL_TO_FORTRAN(uface[2])),
-                     dx, prob_lo);
+            // compute velocities on faces (prescribed function of space and time)
+	    get_face_velocity(&lev, &ctr_time,
+			      AMREX_D_DECL(BL_TO_FORTRAN(uface[0]),
+				     BL_TO_FORTRAN(uface[1]),
+				     BL_TO_FORTRAN(uface[2])),
+			      dx, prob_lo);
 
-        // compute new state (stateout) and fluxes.
-        advect(time, bx.loVect(), bx.hiVect(),
-                  BL_TO_FORTRAN_3D(statein), 
-                  BL_TO_FORTRAN_3D(stateout),
-                  AMREX_D_DECL(BL_TO_FORTRAN_3D(uface[0]),
-                  BL_TO_FORTRAN_3D(uface[1]),
-                  BL_TO_FORTRAN_3D(uface[2])),
-                  AMREX_D_DECL(BL_TO_FORTRAN_3D(flux[0]), 
-                  BL_TO_FORTRAN_3D(flux[1]), 
-                  BL_TO_FORTRAN_3D(flux[2])), 
-                  dx, dt);
+            // compute new state (stateout) and fluxes.
+            advect(&time, bx.loVect(), bx.hiVect(),
+		   BL_TO_FORTRAN_3D(statein), 
+		   BL_TO_FORTRAN_3D(stateout),
+		   AMREX_D_DECL(BL_TO_FORTRAN_3D(uface[0]),
+			  BL_TO_FORTRAN_3D(uface[1]),
+			  BL_TO_FORTRAN_3D(uface[2])),
+		   AMREX_D_DECL(BL_TO_FORTRAN_3D(flux[0]), 
+			  BL_TO_FORTRAN_3D(flux[1]), 
+			  BL_TO_FORTRAN_3D(flux[2])), 
+		   dx, &dt);
 
-        if (do_reflux) 
-        {
-            for (int i = 0; i < BL_SPACEDIM ; i++) 
-            {
-              fluxes[i][mfi].copy(flux[i],mfi.nodaltilebox(i));   
-            }
-        }
-    }
+	    if (do_reflux) {
+		for (int i = 0; i < BL_SPACEDIM ; i++) {
+		    fluxes[i][mfi].copy(flux[i],mfi.nodaltilebox(i));	  
+		}
+	    }
+	}
     }
 
     // increment or decrement the flux registers by area and time-weighted fluxes
@@ -735,6 +732,7 @@ AmrCoreAdv::EstTimeStep (int lev, bool local) const
 #pragma omp parallel reduction(min:dt_est)
 #endif
     {
+<<<<<<< HEAD
     FArrayBox uface[BL_SPACEDIM];
 
     for (MFIter mfi(S_new, true); mfi.isValid(); ++mfi)
@@ -757,6 +755,30 @@ AmrCoreAdv::EstTimeStep (int lev, bool local) const
         }
         }
     }
+=======
+	FArrayBox uface[BL_SPACEDIM];
+
+	for (MFIter mfi(S_new, true); mfi.isValid(); ++mfi)
+	{
+	    for (int i = 0; i < BL_SPACEDIM ; i++) {
+		const Box& bx = mfi.nodaltilebox(i);
+		uface[i].resize(bx,1);
+	    }
+
+	    get_face_velocity(&lev, &cur_time,
+			      AMREX_D_DECL(BL_TO_FORTRAN(uface[0]),
+				     BL_TO_FORTRAN(uface[1]),
+				     BL_TO_FORTRAN(uface[2])),
+			      dx, prob_lo);
+
+	    for (int i = 0; i < BL_SPACEDIM; ++i) {
+		Real umax = uface[i].norm(0);
+		if (umax > 1.e-100) {
+		    dt_est = std::min(dt_est, dx[i] / umax);
+		}
+	    }
+	}
+>>>>>>> 26183c94ea697b546d8a30ecfc3c2dca56c75072
     }
 
     if (!local) {

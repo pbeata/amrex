@@ -22,3 +22,6 @@ TAGS
 
 *plt*
 *output*
+.DS_Store
+Docs/AMReXUsersGuide/Visualization/*.pdf
+Docs/sphinx/build
