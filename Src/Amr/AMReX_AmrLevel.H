@@ -201,6 +201,15 @@ public:
     * implemented by derived classes.
     */
     virtual void initData () = 0;
+    
+    
+    /* ==========================================
+    pbeata
+    ADD A PURE VIRTUAL FUNCTION FOR PRINTING EB CNS OUTPUT
+    ========================================== */
+    virtual void printData () = 0;
+
+
     //! Set the time levels of state data.
     virtual void setTimeLevel (Real time,
                                Real dt_old,

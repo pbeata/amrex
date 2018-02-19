@@ -615,3 +615,29 @@ CNS::fixUpGeometry ()
 
 }
 
+
+// pbeata
+// NEW PRINT FUNCTION
+void
+CNS::printData ()
+{
+
+  amrex::Print() << "\n ~~~ TEST PRINT LEVEL " << level << " ~~~\n";
+
+  const Real* dx  = geom.CellSize();
+  const Real* prob_lo = geom.ProbLo();
+  MultiFab& S_new = get_new_data(State_Type);
+  Real cur_time   = state[State_Type].curTime();
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+  for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
+  {
+    const Box& box = mfi.validbox();
+    cns_printdata(&level, &cur_time,
+                 BL_TO_FORTRAN_BOX(box),
+                 BL_TO_FORTRAN_ANYD(S_new[mfi]),
+                 dx, prob_lo);
+  }
+}

@@ -106,6 +106,11 @@ public:
 
     static int numGrow() { return NUM_GROW; };
 
+    // pbeata
+    // NEW MEMBER FUNCTION TO PRINT DATA TO FILES
+    virtual void printData () override;
+    
+
 protected:
 
     static void read_params ();

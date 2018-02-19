@@ -2008,6 +2008,8 @@ Amr::timeStep (int  level,
 
     amr_level[level]->post_timestep(iteration);
 
+    amr_level[level]->printData();
+
     // Set this back to negative so we know whether we are in fact in this routine
     which_level_being_advanced = -1;
 }
