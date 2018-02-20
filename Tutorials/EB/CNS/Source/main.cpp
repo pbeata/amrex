@@ -91,6 +91,9 @@ int main (int argc, char* argv[])
         amr.writePlotFile();
       }
 
+      // pbeata: write final solution to files
+      amr.writeOutput();
+
       EBTower::Destroy();
     
     }   // END MAIN

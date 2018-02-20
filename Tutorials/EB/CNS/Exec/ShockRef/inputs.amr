@@ -1,9 +1,9 @@
-max_step  = 2
+max_step  = 200
 stop_time = 1.2e-5
 
-DistributionMapping.strategy = SFC
+#DistributionMapping.strategy = SFC
 #DistributionMapping.strategy = KNAPSACK
-#DistributionMapping.strategy = ROUNDROBIN
+DistributionMapping.strategy = ROUNDROBIN
 
 geometry.is_periodic = 0 0 0
 geometry.coord_sys   = 0  # 0 => cart, 1 => RZ  2=>spherical

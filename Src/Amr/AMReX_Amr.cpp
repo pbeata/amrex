@@ -199,6 +199,17 @@ Amr::derive (const std::string& name,
     return amr_level[lev]->derive(name,time,ngrow);
 }
 
+// pbeata
+// Write the solution data to a file at the final step
+void 
+Amr::writeOutput()
+{
+    for(int lev = 0; lev <= finest_level; ++lev) 
+    {
+        amr_level[lev]->printData();
+    }
+}
+
 Amr::Amr ()
     :
     AmrCore()
@@ -2007,8 +2018,6 @@ Amr::timeStep (int  level,
     }
 
     amr_level[level]->post_timestep(iteration);
-
-    amr_level[level]->printData();
 
     // Set this back to negative so we know whether we are in fact in this routine
     which_level_being_advanced = -1;

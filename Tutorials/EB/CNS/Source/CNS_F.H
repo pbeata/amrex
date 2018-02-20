@@ -10,7 +10,9 @@ extern "C" {
     void cns_printdata (const int* level, const amrex_real* time,
                        const int* lo, const int* hi,
                        amrex_real* u, const int* ulo, const int* uhi,
-                       const amrex_real* dx, const amrex_real* problo);  
+                       const amrex_real* dx, const amrex_real* problo,
+                       const int* procNum, const int* levNum, 
+                       const int* boxNum, const int* stepNum);
 
     void cns_initdata (const int* level, const amrex_real* time,
                        const int* lo, const int* hi,

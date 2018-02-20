@@ -195,16 +195,23 @@ public:
     void RegridOnly (Real time);
     //! Should we regrid this level?
     bool okToRegrid (int level);
+    
     //! Array of BoxArrays read in to initially define grid hierarchy
     static const BoxArray& initialBa (int level) 
         { BL_ASSERT(level-1 < initial_ba.size()); return initial_ba[level-1]; }
+    
     //! Number of levels at which the grids are initially specified 
     static int initialBaLevels () { return initial_ba.size(); }
+    
     //! Do a complete integration cycle.
     virtual void coarseTimeStep (Real stop_time);
 
     //! Do a complete integration cycle and return the coarse dt.
     Real coarseTimeStepDt (Real stop_time);
+
+    //! pbeata: Write the solution data to a file at the final step.
+    void writeOutput();
+
     //! Retrieve derived data. User is responsible for deleting pointer.
     std::unique_ptr<MultiFab> derive (const std::string& name,
 				      Real           time,

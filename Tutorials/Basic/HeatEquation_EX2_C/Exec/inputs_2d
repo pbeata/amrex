@@ -1,4 +1,4 @@
-nsteps = 10000
+nsteps = 100000
 #nsteps = 100
 
 plot_int = 1000

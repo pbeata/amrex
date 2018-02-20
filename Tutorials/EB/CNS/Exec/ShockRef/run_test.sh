@@ -6,7 +6,7 @@ inFile="./inputs.amr"
 #outFile="./results/KS_4MPI_8OMP_10steps.txt"
 #outFile="./results/RR_4MPI_8OMP_10steps.txt"
 
-export OMP_NUM_THREADS=8
+# export OMP_NUM_THREADS=8
 
 make
 

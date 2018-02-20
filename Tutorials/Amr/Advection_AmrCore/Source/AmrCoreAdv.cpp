@@ -101,7 +101,7 @@ AmrCoreAdv::Evolve ()
 {
     Real cur_time = t_new[0];
     int last_plot_file_step = 0;
-    int write_my_output = 0;
+    int write_my_output = 1;
        
 
     for (int step = istep[0]; step < max_step && cur_time < stop_time; ++step)
@@ -732,30 +732,6 @@ AmrCoreAdv::EstTimeStep (int lev, bool local) const
 #pragma omp parallel reduction(min:dt_est)
 #endif
     {
-<<<<<<< HEAD
-    FArrayBox uface[BL_SPACEDIM];
-
-    for (MFIter mfi(S_new, true); mfi.isValid(); ++mfi)
-    {
-        for (int i = 0; i < BL_SPACEDIM ; i++) {
-        const Box& bx = mfi.nodaltilebox(i);
-        uface[i].resize(bx,1);
-        }
-
-        get_face_velocity(lev, cur_time,
-                  AMREX_D_DECL(BL_TO_FORTRAN(uface[0]),
-                     BL_TO_FORTRAN(uface[1]),
-                     BL_TO_FORTRAN(uface[2])),
-                  dx, prob_lo);
-
-        for (int i = 0; i < BL_SPACEDIM; ++i) {
-        Real umax = uface[i].norm(0);
-        if (umax > 1.e-100) {
-            dt_est = std::min(dt_est, dx[i] / umax);
-        }
-        }
-    }
-=======
 	FArrayBox uface[BL_SPACEDIM];
 
 	for (MFIter mfi(S_new, true); mfi.isValid(); ++mfi)
@@ -778,7 +754,6 @@ AmrCoreAdv::EstTimeStep (int lev, bool local) const
 		}
 	    }
 	}
->>>>>>> 26183c94ea697b546d8a30ecfc3c2dca56c75072
     }
 
     if (!local) {
